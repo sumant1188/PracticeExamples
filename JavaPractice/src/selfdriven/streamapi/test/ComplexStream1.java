@@ -1,13 +1,16 @@
-package test;
+package selfdriven.streamapi.test;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class ComplexStream1 {
     public static void main(String[] args) {
         Employee e = new Employee();
         List<Employee> employees = e.createEmployees();
-
+        // reverse a string using stream
+        String word = "Hello World";
+        reverseString(word);
         // Group employees by a field
         callGroupByFieldExample(employees);
         // count by gender employees
@@ -34,16 +37,63 @@ public class ComplexStream1 {
         callSortingBySalaryAndAge(employees);
         // list of employees from each department whose salary is greater than the average salary of their department
         callFindEmployeeWithSalaryMoreThanAverage(employees);
+        // max salary in organization
+        callMaxSalaryInOrganization(employees);
+        // second highest salary from org.
+        callSecondMaxSalaryInOrganization(employees);
+        // highest paid salary in the organisation based on gender
+        callHighestSalaryByGender(employees);
+        
 
     }
 
+    private static void callHighestSalaryByGender(List<Employee> employees) {
+        employees.stream()
+                .collect(Collectors.groupingBy(Employee::getGender,
+                        Collectors.maxBy(Comparator.comparingDouble(Employee::getSalary))))
+                .forEach((gender, emp) -> {
+                    System.out.println("Highest salary in - " + gender + "->" + emp.get());
+                });
+    }
+
+    private static void callSecondMaxSalaryInOrganization(List<Employee> employees) {
+        // sol 2
+        OptionalDouble maxSalary = employees.stream()
+                .mapToDouble(Employee::getSalary)
+                .boxed()
+                .distinct()
+                .sorted(Comparator.reverseOrder())
+                .mapToDouble(Double::doubleValue)
+                .findFirst();
+
+        Employee employee = employees.stream().sorted(Comparator.comparingDouble(Employee::getSalary).reversed())
+                .filter(emp -> emp.getSalary() < maxSalary.getAsDouble()).findFirst().get();
+
+        System.out.println("Employee with second highest salary - " + employee);
+    }
+
+    private static void callMaxSalaryInOrganization(List<Employee> employees) {
+        Optional<Employee> max = employees.stream().max(Comparator.comparingDouble(Employee::getSalary));
+        System.out.println("Employee with max salary - " + max.get());
+    }
+
+    private static void reverseString(String word) {
+        String reverse = IntStream.range(0, word.length())
+                .mapToObj(i -> word.charAt(word.length() - 1 - i))
+                .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
+                .toString();
+        System.out.println(reverse);
+    }
+
     private static void callFindEmployeeWithSalaryMoreThanAverage(List<Employee> employees) {
+        System.out.println("callFindEmployeeWithSalaryMoreThanAverage start");
         Map<String, Double> averageSalary = employees.stream()
                 .collect(Collectors.groupingBy(Employee::getDepartment, Collectors.averagingDouble(Employee::getSalary)));
         List<Employee> employeeList = employees.stream()
-                .filter(emp -> emp.getSalary() > averageSalary.get(emp.getSalary()))
+                .filter(emp -> emp.getSalary() > averageSalary.get(emp.getDepartment()))
                 .toList();
         employeeList.forEach(System.out::println);
+        System.out.println("callFindEmployeeWithSalaryMoreThanAverage finsh");
     }
 
     private static void callSortingBySalaryAndAge(List<Employee> employees) {
@@ -72,7 +122,7 @@ public class ComplexStream1 {
         result.forEach((department, genderMap) -> {
             System.out.print("Department: " + department + "==");
             genderMap.forEach((gender, count) ->
-                    System.out.print("  " + gender + " -> " + count +", ")
+                    System.out.print("  " + gender + " -> " + count + ", ")
             );
         });
     }
@@ -94,9 +144,9 @@ public class ComplexStream1 {
 
     private static void callAverageAgeInOrgByGender(List<Employee> employees) {
         employees.stream()
-                 .collect(Collectors.groupingBy(Employee::getGender,
-                         Collectors.averagingInt(Employee::getAge)))
-                 .entrySet().forEach(System.out::println);
+                .collect(Collectors.groupingBy(Employee::getGender,
+                        Collectors.averagingInt(Employee::getAge)))
+                .entrySet().forEach(System.out::println);
     }
 
     private static void callAverageAgeInDeptByGender(List<Employee> employees) {
@@ -106,7 +156,7 @@ public class ComplexStream1 {
         result.forEach((department, genderMap) -> {
             System.out.print("Department: " + department + "==");
             genderMap.forEach((gender, average) ->
-                    System.out.print("  " + gender + " -> " + average +", ")
+                    System.out.print("  " + gender + " -> " + average + ", ")
             );
         });
     }
@@ -128,7 +178,7 @@ public class ComplexStream1 {
         // Sol 1 - use entire list
         long start = System.currentTimeMillis();
         long hrCount = employees.stream().filter(emp -> "HR".equalsIgnoreCase(emp.getDepartment())).count();
-        System.out.println((hrCount > 0)?"exists":"not exists");
+        System.out.println((hrCount > 0) ? "exists" : "not exists");
         long end = System.currentTimeMillis();
         System.out.println("Time taken filter: " + (end - start) + " ms");
 
@@ -142,7 +192,7 @@ public class ComplexStream1 {
         //sol 3 - find first
         start = System.currentTimeMillis();
         Optional<Employee> first = employees.stream().filter(employee -> "HR".equalsIgnoreCase(employee.getDepartment())).findFirst();
-        System.out.println((first.isPresent())?"exists":"Not exists");
+        System.out.println((first.isPresent()) ? "exists" : "Not exists");
         end = System.currentTimeMillis();
         System.out.println("Time taken find first: " + (end - start) + " ms");
     }
@@ -154,13 +204,24 @@ public class ComplexStream1 {
                 .filter(entry -> entry.getValue() > 3)
                 .forEach(entry -> System.out.println(entry.getKey()));
     }
-    
+
     private static void callSortByAgeAndName(List<Employee> employees) {
         List<Employee> employeeList = employees.stream()
                 .sorted(Comparator.comparingInt(Employee::getAge).thenComparing(Comparator.comparing(Employee::getName)))
                 .toList();
         System.out.println(employeeList);
     }
+
+    /*
+    private static void callFindByOneLocation(List<Employee> employees) {
+        List<Employee> employeesWithMatchedCity = employees.stream()
+                .filter(e -> e.getLocations().stream()
+                        .anyMatch(location -> location.getCity().equals("Bangalore")))
+                .toList();
+        System.out.println(employeesWithMatchedCity.size());
+        System.out.println(employeesWithMatchedCity);
+    }
+    */
 
 }
 

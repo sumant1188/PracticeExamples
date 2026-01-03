@@ -1,4 +1,4 @@
-package test;
+package selfdriven.streamapi.test;
 
 import java.time.LocalDate;
 import java.util.List;
