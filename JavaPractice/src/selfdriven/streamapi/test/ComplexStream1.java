@@ -43,7 +43,7 @@ public class ComplexStream1 {
         callSecondMaxSalaryInOrganization(employees);
         // highest paid salary in the organisation based on gender
         callHighestSalaryByGender(employees);
-        
+
 
     }
 
